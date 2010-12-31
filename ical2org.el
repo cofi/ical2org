@@ -41,7 +41,7 @@
 (defgroup ical2org nil
   "Convert iCalendar files to orgmode files."
   :link '(url-link :tag "Homepage" "http://github.com/cofi/ical2org")
-  :group "ical2org"
+  :group 'calendar
   :prefix "ical2org/")
 
 (defcustom ical2org/event-format
