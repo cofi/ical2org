@@ -149,6 +149,27 @@ struct (capitalized)."
           (format "<%s %s-%s>" start-day start-time end-time))
       (format "<%s %s>--<%s %s>" start-day start-time end-day end-time))))
 
+(defun ical2org/org-timestamp (start end)
+  "Format `START' and `END' as org-time-stamp."
+  (let ((start-time (nth 2 start))
+        (end-time (nth 2 end))
+        (start (car start))
+        (end (car end)))
+    (if end
+        (format "%s--%s" (ical2org/org-time-fmt start start-time)
+                (ical2org/org-time-fmt end end-time))
+      (if start
+          (ical2org/org-time-fmt start start-time)))))
+
+(defun ical2org/org-time-fmt (time &optional with-hm)
+  "Format `TIME' as org-time-stamp, if `WITH-HM' is non-nil included hh:mm.
+`TIME' is an decoded time as returned from `decode-time'."
+  (let ((fmt (if with-hm
+                 (cdr org-time-stamp-formats)
+               (car org-time-stamp-formats)))
+        (encoded-time (apply 'encode-time time)))
+    (format-time-string fmt encoded-time)))
+
 (defun ical2org/extract-event (ical-event zone-map)
   "Extracts `ical2org/event' from `ICAL-EVENT' using the timezone map `ZONE-MAP'."
   (let ((summary (ical2org/get-property ical-event 'SUMMARY "" t))
