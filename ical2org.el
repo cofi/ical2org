@@ -109,8 +109,12 @@ struct (capitalized)."
   (organizer "")
   (category ""))
 
-(defun ics2org/decode-dt (property event zone-map)
-  "Return decoded daytime `PROPERTY' of `EVENT' with `ZONE-MAP' as pair `(isoday . time)'."
+(defun ics2org/datetime (property event zone-map)
+  "Return datetime values for `PROPERTY' of `EVENT' with `ZONE-MAP'.
+Return a triple of (decoded isodate time).
+Where `decoded' is a decoded datetime,
+      `isodate' a date as yy mm dd string,
+      `time' a time as hh:mm string."
   (let* ((dt (icalendar--get-event-property event property))
          (zone (icalendar--find-time-zone
                 (icalendar--get-event-property-attributes event property) zone-map))
@@ -119,25 +123,20 @@ struct (capitalized)."
                              (string= (cadr (icalendar--get-event-property-attributes
                                              event property))
                                       "DATE")))))
-    (when decoded
-      (cons
-       (icalendar--datetime-to-iso-date decoded)
-       (if time-missing
-           nil
-         (icalendar--datetime-to-colontime decoded))))))
+    (list decoded
+          (icalendar--datetime-to-iso-date decoded)
+          (if time-missing
+              nil
+            (icalendar--datetime-to-colontime decoded)))))
 
 (defun ical2org/get-org-timestr (event zone-map)
   "Return org-timestring for `EVENT' with `ZONE-MAP'."
-  (let* ((date+time (ics2org/decode-dt 'DTSTART event zone-map))
-         (start-day (car date+time))
-         (start-time (cdr date+time))
-         (date+time (ics2org/decode-dt 'DTEND event zone-map))
-         (end-day (if date+time
-                      (car date+time)
-                    start-day))
-         (end-time (if date+time
-                      (cdr date+time)
-                    start-time))
+  (let* ((start (ics2org/datetime 'DTSTART event zone-map))
+         (start-day (nth 1 start))
+         (start-time (nth 2 start))
+         (end (ics2org/datetime 'DTEND event zone-map))
+         (end-day (or (nth 1 end) start-day))
+         (end-time (or (nth 2 end) start-time))
          ;; TODO: Cover recurrences
          (rrule (icalendar--get-event-property event 'RRULE))
          (rdate (icalendar--get-event-property event 'RDATE))
