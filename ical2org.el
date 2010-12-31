@@ -46,7 +46,7 @@
 
 (defcustom ical2org/event-format
 "* {SUMMARY} at {LOCATION}           :{CATEGORY}:
-  {TIME}
+{TIME}
   {ORGANIZER}
   {URL}
   {DESCRIPTION}"
