@@ -56,9 +56,9 @@ DESCRIPTION, ORGANIZER, CATEGORY.  Namely the slots of the `ical2org/event'
 struct (capitalized)."
 :type '(string))
 
-(defun ical2org/convert-file (fname outfile)
-  "Convert ical events from file `FNAME' to `OUTFILE'."
-  (interactive "fFile to convert: \nFSave as: ")
+(defun ical2org/convert-file (fname outfile &optional nosave)
+  "Convert ical events from file `FNAME' to `OUTFILE' and save when `NOSAVE' is non-nil."
+  (interactive "fFile to convert: \nFSave as: \nP")
   (let ((events
          (with-temp-buffer
            (insert-file-contents (expand-file-name fname))
@@ -68,7 +68,9 @@ struct (capitalized)."
       (goto-char (point-max))
       (dolist (e events)
         (insert (ical2org/format e))
-        (newline)))))
+        (newline))
+      (unless nosave
+        (save-buffer)))))
 
 (defun ical2org/buffer-to-buffer (in out)
   "Convert ical events from buffer `IN' to buffer `OUT'."
