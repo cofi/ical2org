@@ -137,16 +137,14 @@ Where `decoded' is a decoded datetime,
          (end (ics2org/datetime 'DTEND event zone-map))
          (end-day (or (nth 1 end) start-day))
          (end-time (or (nth 2 end) start-time))
-         ;; TODO: Cover recurrences
          (rrule (icalendar--get-event-property event 'RRULE))
          (rdate (icalendar--get-event-property event 'RDATE))
+         ;; TODO: cover duration
          (duration (icalendar--get-event-property event 'DURATION)))
 
-    (if (string= start-day end-day)
-        (if (string= start-time end-time)
-            (format "<%s %s>" start-day start-time)
-          (format "<%s %s-%s>" start-day start-time end-time))
-      (format "<%s %s>--<%s %s>" start-day start-time end-day end-time))))
+    (cond
+     (rrule (icalendar--convert-recurring-to-diary event (car start) start-time end-time))
+     (t (ical2org/org-timestamp start end)))))
 
 (defun ical2org/org-timestamp (start end)
   "Format `START' and `END' as org-time-stamp."
