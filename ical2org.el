@@ -3,9 +3,8 @@
 ;; Copyright (C) 2010 by Michael Markert 
 ;; Author: Michael Markert <markert.michael@googlemail.com>
 ;; Created: 2010/12/29
-;; Time-stamp: <2010-12-30 08:23:32 cofi>
-;; Version: 0.1
-
+;; Time-stamp: <2010-12-31 18:32:43 cofi>
+;; Version: 0.2.1
 ;; Keywords: org, calendar
 
 ;; This file is NOT part of Emacs.
@@ -46,7 +45,7 @@
 
 (defcustom ical2org/event-format
 "* {SUMMARY} at {LOCATION}           :{CATEGORY}:
-{TIME}
+  {TIME}
   {ORGANIZER}
   {URL}
   {DESCRIPTION}"
@@ -143,8 +142,14 @@ Where `decoded' is a decoded datetime,
          (duration (icalendar--get-event-property event 'DURATION)))
 
     (cond
-     (rrule (icalendar--convert-recurring-to-diary event (car start) start-time end-time))
+     (rrule (ical2org/org-recurrent event (car start) start-time end-time))
      (t (ical2org/org-timestamp start end)))))
+
+(defun ical2org/org-recurrent (event start-decoded start-time end-time)
+  "Wrap `icalendar--convert-recurring-to-diary' diary in an org timestamp."
+  (format "<%s>"
+          (icalendar--convert-recurring-to-diary event start-decoded
+                                                 start-time end-time)))
 
 (defun ical2org/org-timestamp (start end)
   "Format `START' and `END' as org-time-stamp."
