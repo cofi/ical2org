@@ -1,6 +1,6 @@
 ;;; ics2org.el -- convert icalendar to org
 
-;; Copyright (C) 2010 by Michael Markert 
+;; Copyright (C) 2010 by Michael Markert
 ;; Author: Michael Markert <markert.michael@googlemail.com>
 ;; Created: 2010/12/29
 ;; Time-stamp: <2010-12-31 18:32:43 cofi>
@@ -27,7 +27,7 @@
 ;;; Commentary:
 ;;
 ;; Installation:
-;; 
+;;
 ;;   (require 'ical2org)
 ;;
 
@@ -50,11 +50,11 @@
   {ORGANIZER}
   {URL}
   {DESCRIPTION}"
-"String used to format an event.
+  "String used to format an event.
 Syntax is {FIELD} valid values for FIELD are: SUMMARY, LOCATION, TIME, URL,
 DESCRIPTION, ORGANIZER, CATEGORY.  Namely the slots of the `ical2org/event'
 struct (capitalized)."
-:type '(string))
+  :type '(string))
 
 (defcustom ical2org/completing-read #'ido-completing-read
   "Function used for completing read.
@@ -108,11 +108,12 @@ Saves when `NOSAVE' is non-nil."
       (dolist (e events)
         (insert (ical2org/format e))
         (newline))
-      (show-buffer nil out)
+      (set-window-buffer nil out)
       (org-mode))))
 
 ;; private
 
+;; output formatting
 (defun ical2org/format (event)
   "Replace formatstrings with slots of `EVENT'."
   (replace-regexp-in-string "{.*?}"
@@ -128,6 +129,35 @@ Saves when `NOSAVE' is non-nil."
                                           )))
                             ical2org/event-format
                             t t))
+
+(defun ical2org/org-recurrent (event start-decoded start-time end-time)
+  "Wrap `icalendar--convert-recurring-to-diary' diary in an org timestamp."
+  (format "<%s>"
+          (icalendar--convert-recurring-to-diary event start-decoded
+                                                 start-time end-time)))
+
+(defun ical2org/org-timestamp (start end)
+  "Format `START' and `END' as `org-time-stamp'."
+  (let ((start-time (nth 2 start))
+        (end-time (nth 2 end))
+        (start (car start))
+        (end (car end)))
+    (if end
+        (format "%s--%s" (ical2org/org-time-fmt start start-time)
+                (ical2org/org-time-fmt end end-time))
+      (if start
+          (ical2org/org-time-fmt start start-time)))))
+
+(defun ical2org/org-time-fmt (time &optional with-hm)
+  "Format `TIME' as `org-time-stamp', if `WITH-HM' is non-nil included hh:mm.
+`TIME' is an decoded time as returned from `decode-time'."
+  (let ((fmt (if with-hm
+                 (cdr org-time-stamp-formats)
+               (car org-time-stamp-formats)))
+        (encoded-time (apply 'encode-time time)))
+    (format-time-string fmt encoded-time)))
+
+;; entry processing
 
 (defstruct ical2org/event
   (summary "")
@@ -153,6 +183,14 @@ Where `decoded' is a decoded datetime,
           (ignore-errors
             (icalendar--datetime-to-colontime decoded)))))
 
+(defun ical2org/get-property (event property &optional default clean)
+  "Return `PROPERTY' of `EVENT' or `DEFAULT'."
+  (let ((prop (or (icalendar--get-event-property event property)
+                 default)))
+    (if clean
+        (icalendar--convert-string-for-import prop)
+      prop)))
+
 (defun ical2org/get-org-timestr (event zone-map)
   "Return org-timestring for `EVENT' with `ZONE-MAP'."
   (let* ((start (ics2org/datetime 'DTSTART event zone-map))
@@ -176,33 +214,6 @@ Where `decoded' is a decoded datetime,
      (rrule (ical2org/org-recurrent event (car start) start-time end-time))
      (t (ical2org/org-timestamp start end)))))
 
-(defun ical2org/org-recurrent (event start-decoded start-time end-time)
-  "Wrap `icalendar--convert-recurring-to-diary' diary in an org timestamp."
-  (format "<%s>"
-          (icalendar--convert-recurring-to-diary event start-decoded
-                                                 start-time end-time)))
-
-(defun ical2org/org-timestamp (start end)
-  "Format `START' and `END' as org-time-stamp."
-  (let ((start-time (nth 2 start))
-        (end-time (nth 2 end))
-        (start (car start))
-        (end (car end)))
-    (if end
-        (format "%s--%s" (ical2org/org-time-fmt start start-time)
-                (ical2org/org-time-fmt end end-time))
-      (if start
-          (ical2org/org-time-fmt start start-time)))))
-
-(defun ical2org/org-time-fmt (time &optional with-hm)
-  "Format `TIME' as org-time-stamp, if `WITH-HM' is non-nil included hh:mm.
-`TIME' is an decoded time as returned from `decode-time'."
-  (let ((fmt (if with-hm
-                 (cdr org-time-stamp-formats)
-               (car org-time-stamp-formats)))
-        (encoded-time (apply 'encode-time time)))
-    (format-time-string fmt encoded-time)))
-
 (defun ical2org/extract-event (ical-event zone-map)
   "Extracts `ical2org/event' from `ICAL-EVENT' using the timezone map `ZONE-MAP'."
   (let ((summary (ical2org/get-property ical-event 'SUMMARY "" t))
@@ -212,7 +223,7 @@ Where `decoded' is a decoded datetime,
         (description (ical2org/get-property ical-event 'DESCRIPTION "" t))
         (organizer (ical2org/get-property ical-event 'ORGANIZER "" t))
         (category (replace-regexp-in-string "," ":"
-                     (ical2org/get-property ical-event 'CATEGORIES "" t))))
+                        (ical2org/get-property ical-event 'CATEGORIES "" t))))
     (make-ical2org/event :summary summary
                          :location location
                          :org-timestr org-timestr
@@ -234,18 +245,10 @@ Where `decoded' is a decoded datetime,
     (set-buffer (icalendar--get-unfolded-buffer buffer))
     (goto-char (point-min))
     (if (re-search-forward "^BEGIN:VCALENDAR\\s-*$" nil t)
-          (progn
-            (beginning-of-line)
-            (ical2org/import-elements (icalendar--read-element nil nil)))
+        (progn
+          (beginning-of-line)
+          (ical2org/import-elements (icalendar--read-element nil nil)))
       (message "Buffer does not contain icalendar contents!"))))
-
-(defun ical2org/get-property (event property &optional default clean)
-  "Return `PROPERTY' of `EVENT' or `DEFAULT'."
-  (let ((prop (or (icalendar--get-event-property event property)
-                 default)))
-    (if clean
-        (icalendar--convert-string-for-import prop)
-      prop)))
 
 (provide 'ical2org)
 
