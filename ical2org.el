@@ -1,10 +1,9 @@
 ;;; ics2org.el -- convert icalendar to org
 
-;; Copyright (C) 2010 by Michael Markert
+;; Copyright (C) 2010, 2011 Michael Markert
 ;; Author: Michael Markert <markert.michael@googlemail.com>
 ;; Created: 2010/12/29
-;; Time-stamp: <2010-12-31 18:32:43 cofi>
-;; Version: 0.2.1
+;; Version: 0.3
 ;; Keywords: org, calendar
 
 ;; This file is NOT part of Emacs.
