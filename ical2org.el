@@ -56,6 +56,11 @@ DESCRIPTION, ORGANIZER, CATEGORY.  Namely the slots of the `ical2org/event'
 struct (capitalized)."
 :type '(string))
 
+(defcustom ical2org/completing-read #'ido-completing-read
+  "Function used for completing read.
+Has to be compatible to `completing-read'."
+  :type '(function))
+
 (defun ical2org/convert-file (fname outfile &optional nosave)
   "Convert ical events from file `FNAME' to `OUTFILE' and save when `NOSAVE' is non-nil."
   (interactive "fFile to convert: \nFSave as: \nP")
@@ -66,6 +71,28 @@ struct (capitalized)."
     (save-current-buffer
       (find-file outfile)
       (goto-char (point-max))
+      (newline)
+      (dolist (e events)
+        (insert (ical2org/format e))
+        (newline))
+      (unless nosave
+        (save-buffer)))))
+
+(defun ical2org/import-to-agenda (fname &optional nosave)
+  "Import ical events from file `FNAME' to agenda file (will be prompted).
+Saves when `NOSAVE' is non-nil."
+  (interactive "fFile to import: \nP")
+  (let ((agenda-file (funcall ical2org/completing-read
+                              "Agenda file: "
+                              (org-agenda-files)))
+        (events
+         (with-temp-buffer
+           (insert-file-contents (expand-file-name fname))
+           (ical2org/import-buffer (current-buffer)))))
+    (save-current-buffer
+      (find-file agenda-file)
+      (goto-char (point-max))
+      (newline)
       (dolist (e events)
         (insert (ical2org/format e))
         (newline))
@@ -77,10 +104,12 @@ struct (capitalized)."
   (interactive "bIn: \nBOut: ")
   (save-current-buffer
     (let ((events (ical2org/import-buffer in)))
-        (set-buffer (generate-new-buffer out))
-        (dolist (e events)
-          (insert (ical2org/format e))
-          (newline)))))
+      (set-buffer (generate-new-buffer out))
+      (dolist (e events)
+        (insert (ical2org/format e))
+        (newline))
+      (show-buffer nil out)
+      (org-mode))))
 
 ;; private
 
