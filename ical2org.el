@@ -34,6 +34,7 @@
 ;;; Code:
 
 (require 'icalendar)
+(require 'org)
 (eval-when-compile
   (require 'cl))
 
