@@ -117,15 +117,10 @@ Where `decoded' is a decoded datetime,
   (let* ((dt (icalendar--get-event-property event property))
          (zone (icalendar--find-time-zone
                 (icalendar--get-event-property-attributes event property) zone-map))
-         (decoded (icalendar--decode-isodatetime dt nil zone-map))
-         (time-missing (not (and decoded
-                             (string= (cadr (icalendar--get-event-property-attributes
-                                             event property))
-                                      "DATE")))))
+         (decoded (icalendar--decode-isodatetime dt nil zone-map)))
     (list decoded
           (icalendar--datetime-to-iso-date decoded)
-          (if time-missing
-              nil
+          (ignore-errors
             (icalendar--datetime-to-colontime decoded)))))
 
 (defun ical2org/get-org-timestr (event zone-map)
