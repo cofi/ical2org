@@ -133,8 +133,14 @@ Where `decoded' is a decoded datetime,
          (end-time (or (nth 2 end) start-time))
          (rrule (icalendar--get-event-property event 'RRULE))
          (rdate (icalendar--get-event-property event 'RDATE))
-         ;; TODO: cover duration
          (duration (icalendar--get-event-property event 'DURATION)))
+    (when duration
+      (let ((new-end (icalendar--add-decoded-times
+                      (car start)
+                      (icalendar--decode-isoduration duration))))
+        (setq end-day (icalendar--datetime-to-iso-date new-end))
+        (setq end-time (icalendar--datetime-to-colontime new-end))
+        (setq end (list new-end end-day end-time))))
 
     (cond
      (rrule (ical2org/org-recurrent event (car start) start-time end-time))
