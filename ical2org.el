@@ -3,7 +3,7 @@
 ;; Copyright (C) 2010, 2011 Michael Markert
 ;; Author: Michael Markert <markert.michael@googlemail.com>
 ;; Created: 2010/12/29
-;; Version: 0.3
+;; Version: 0.3.1
 ;; Keywords: org, calendar
 
 ;; This file is NOT part of Emacs.
@@ -37,6 +37,8 @@
 (eval-when-compile
   (require 'cl))
 
+(defconst ical2org/version "0.3.1")
+
 (defgroup ical2org nil
   "Convert iCalendar files to orgmode files."
   :link '(url-link :tag "Homepage" "http://github.com/cofi/ical2org")
@@ -53,6 +55,10 @@
 Syntax is {FIELD} valid values for FIELD are: SUMMARY, LOCATION, TIME, URL,
 DESCRIPTION, ORGANIZER, CATEGORY.  Namely the slots of the `ical2org/event'
 struct (capitalized)."
+  :type '(string))
+
+(defcustom ical2org/category-separator ":"
+  "String used to separate multiple categories."
   :type '(string))
 
 (defcustom ical2org/completing-read #'ido-completing-read
@@ -124,7 +130,9 @@ Saves when `NOSAVE' is non-nil."
                                             ("{URL}"         . ,(ical2org/event-url event))
                                             ("{DESCRIPTION}" . ,(ical2org/event-description event))
                                             ("{ORGANIZER}"   . ,(ical2org/event-organizer event))
-                                            ("{CATEGORY}"    . ,(ical2org/event-category event)))
+                                            ("{CATEGORY}"    . ,(mapconcat 'identity
+                                                                           (ical2org/event-category event)
+                                                                           ical2org/category-separator)))
                                           )))
                             ical2org/event-format
                             t t))
@@ -165,7 +173,7 @@ Saves when `NOSAVE' is non-nil."
   (url "")
   (description "")
   (organizer "")
-  (category ""))
+  (category '()))
 
 (defun ics2org/datetime (property event zone-map)
   "Return datetime values for `PROPERTY' of `EVENT' with `ZONE-MAP'.
@@ -221,8 +229,8 @@ Where `decoded' is a decoded datetime,
         (url (ical2org/get-property ical-event 'URL ""))
         (description (ical2org/get-property ical-event 'DESCRIPTION "" t))
         (organizer (ical2org/get-property ical-event 'ORGANIZER "" t))
-        (category (replace-regexp-in-string "," ":"
-                        (ical2org/get-property ical-event 'CATEGORIES "" t))))
+        (category (split-string (ical2org/get-property ical-event 'CATEGORIES "" t)
+                                "," t)))
     (make-ical2org/event :summary summary
                          :location location
                          :org-timestr org-timestr
